@@ -114,6 +114,15 @@
             "schema": {
               "$ref": "#/definitions/acme-catalog-product-purchase-option-response"
             }
+          },
+          "other": {
+            "description": "Unexpected error",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/acme-catalog-product-purchase-option-response"
+              }
+            }
           }
         }
       }
@@ -149,10 +158,17 @@
         },
         "localRef": {
           "$ref": "#/definitions/ref-to-ref"
+        },
+        "here": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ref-to-ref"
+          }
         }
       },
       "required": [
-        "status"
+        "status",
+        "here"
       ]
     },
     "ref-to-ref": {

@@ -2,6 +2,7 @@
 
 [x] - GET url params 
 [x] - simpler local refs in definitions
-[ ] - array refs
+[x] - array refs
+[x] - test + lint + build in npm test
 [ ] - CLI
 [ ] - support multiple file outputs

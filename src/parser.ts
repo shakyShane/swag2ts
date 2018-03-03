@@ -1,74 +1,64 @@
-import * as ts from 'typescript';
-import {createConst, createInterface, createStatement} from "./swagger";
+import * as ts from "typescript";
 import {Statement} from "typescript";
-
-// export const kindMap = {
-//     [ts.SyntaxKind.NullKeyword]: ts.SyntaxKind.NullKeyword,
-//     [ts.SyntaxKind.StringLiteral]: ts.SyntaxKind.StringKeyword,
-//     [ts.SyntaxKind.FirstLiteralToken]: ts.SyntaxKind.NumberKeyword,
-//     [ts.SyntaxKind.TrueKeyword]: ts.SyntaxKind.BooleanKeyword,
-//     [ts.SyntaxKind.FalseKeyword]: ts.SyntaxKind.BooleanKeyword,
-//     [ts.SyntaxKind.NumericLiteral]: ts.SyntaxKind.NumberKeyword,
-// };
+import {createConst, createInterface, createStatement} from "./swagger";
 
 export interface Block {
-    displayName: string
-    statements: Statement[]
+    displayName: string;
+    statements: Statement[];
 }
 
 export interface ParseOutput {
-    modules: Block[],
-    definitions: Block[]
+    modules: Block[];
+    definitions: Block[];
 }
 
 export function parse(json: SwaggerInput): ParseOutput {
     const parsed = Object
         .keys(json.paths)
-        .map(key => ({key, current: json.paths[key]}))
+        .map((key) => ({key, current: json.paths[key]}))
         .reduce((acc, {key, current}) => {
             return acc.concat(Object
                 .keys(current)
                 .map((methodType: MethodKeys) => {
                     const item: MethodItem = current[methodType];
                     const name = item.tags[0];
-                    const bodyItems = (item.parameters||[])
-                        .map(x => {
-                            if (x.in === 'body') {
+                    const bodyItems = (item.parameters || [])
+                        .map((x) => {
+                            if (x.in === "body") {
                                 return x.schema;
                             }
                         })
                         .filter(Boolean);
 
                     const bodyMembers = getParamsFromObject(bodyItems);
-                    const pathItems = (item.parameters||[])
-                        .map(x => {
-                            if (x.in === 'path') {
+                    const pathItems = (item.parameters || [])
+                        .map((x) => {
+                            if (x.in === "path") {
                                 return x;
                             }
                         })
                         .filter(Boolean);
 
                     return {
+                        body: createInterface("Body", bodyMembers),
                         displayName: upper(name) + upper(methodType),
                         method: methodType,
-                        body: createInterface('Body', bodyMembers),
                         pathParams: getPathMembers(pathItems),
                         responses: getResponses(item.responses),
                         variables: {
-                            method: methodType.toUpperCase(),
-                            path: key,
                             description: item.description,
+                            method: methodType.toUpperCase(),
                             operationId: item.operationId,
-                        }
-                    }
+                            path: key,
+                        },
+                    };
                 }));
         }, []);
-
 
     const modules = parsed.map((item): Block => {
         const vars = Object
             .keys(item.variables)
-            .map(key => [key, item.variables[key]])
+            .map((key) => [key, item.variables[key]])
             .map(([name, value]) => {
                 return createStatement(createConst(name, value));
             });
@@ -82,76 +72,76 @@ export function parse(json: SwaggerInput): ParseOutput {
 
         return {
             displayName: item.displayName,
-            statements
+            statements,
         };
     });
-
 
     // console.log(json.definitions);
     const definitions = Object
         .keys(json.definitions)
         .map((key) => {
             const name = dashToStartCase(key);
-            const members = getParamsFromObject([<any>json.definitions[key]], true);
+            const members = getParamsFromObject([json.definitions[key] as any], true);
             const int = createInterface(name, members);
             return int;
         });
 
     return {
-        modules,
         definitions: [{
-            displayName: 'Definitions',
-            statements: definitions
-        }]
-    }
+            displayName: "Definitions",
+            statements: definitions,
+        }],
+        modules,
+    };
 }
 
-export function dashToStartCase(string) {
-    return string.split('-').map(x => upper(x)).join('')
+export function dashToStartCase(input) {
+    return input.split("-").map((x) => upper(x)).join("");
 }
 
-export function upper(string) {
-    return string[0].toUpperCase() + string.slice(1);
+export function upper(input) {
+    return input[0].toUpperCase() + input.slice(1);
 }
-
 
 export function getPathMembers(items: PathParam[]) {
-    const members = items.map(item => {
+    const members = items.map((item) => {
         return resolveItem(item.name, item, [item.name]);
     });
-    const inter = createInterface('PathParams', members);
+    const inter = createInterface("PathParams", members);
     return inter;
 }
 
 export function getResponseUnion(responses) {
     const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
     node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
-    node.name = ts.createIdentifier('Response');
+    node.name = ts.createIdentifier("Response");
     node.type = ts.createUnionOrIntersectionTypeNode(
         ts.SyntaxKind.UnionType,
-        responses.map(resp => ts.createTypeReferenceNode(resp.name.escapedText, undefined))
+        responses.map((resp) => ts.createTypeReferenceNode(resp.name.escapedText, undefined)),
     );
     return node;
 }
 
 export function getResponses(responses: { [K in ResponseCode ]: IResponsesItem}) {
-    return Object.keys(responses).map(code => {
+    return Object.keys(responses).map((code) => {
         const current = responses[code];
         const schema: IDefinitionsItemProperties = current.schema;
-        const typeName = `Response${code === 'default' ? 'Default' : code}`;
-        if (schema['$ref']) {
-            const dashRefName = interfaceNameFromRef(schema['$ref']);
-            const node : any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
+        const typeName = Number.isNaN(Number(code))
+            ? `Response${upper(code)}`
+            : `Response${code}`;
+        if (schema["$ref"]) {
+            const dashRefName = interfaceNameFromRef(schema["$ref"]);
+            const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
             node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
             return getDefinitionReference(node, typeName, dashRefName);
         } else {
-            return resolveFromTopLevelSchema(typeName, schema);
+            return resolveFromTopLevelSchema(typeName, schema, false);
         }
     }).filter(Boolean);
 }
 
 function getDefinitionReference(node, name, refName, isLocal = false) {
-    const leftName = ts.createIdentifier('Definitions');
+    const leftName = ts.createIdentifier("Definitions");
     node.type = ts.createTypeReferenceNode(refName, undefined);
     if (!isLocal) {
         node.type.typeName = ts.createQualifiedName(leftName, refName);
@@ -160,14 +150,11 @@ function getDefinitionReference(node, name, refName, isLocal = false) {
     return node;
 }
 
-export function resolveFromTopLevelSchema(name, input: IResponsesSchema) {
-    if (input['$ref']) {
-        return;
-    }
-    const node : any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
+export function resolveFromTopLevelSchema(name, input: IResponsesSchema, isLocal = false) {
+    const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
     node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
     node.name = ts.createIdentifier(name);
-    switch(input.type) {
+    switch (input.type) {
         case "string": {
             node.type = ts.createTypeReferenceNode("string", undefined);
             return node;
@@ -179,6 +166,20 @@ export function resolveFromTopLevelSchema(name, input: IResponsesSchema) {
         }
         case "boolean": {
             node.type = ts.createTypeReferenceNode("boolean", undefined);
+            return node;
+        }
+        case "array": {
+            const items = (input as any).items;
+            if (items.$ref) {
+                const arrayRef = items.$ref;
+                const refName = interfaceNameFromRef(arrayRef);
+                const arrayType = ts.createTypeReferenceNode(refName, undefined);
+                if (!isLocal) {
+                    const leftName = ts.createIdentifier("Definitions");
+                    arrayType.typeName = ts.createQualifiedName(leftName, refName);
+                }
+                node.type = ts.createArrayTypeNode(arrayType);
+            }
             return node;
         }
     }
@@ -196,39 +197,42 @@ export function getParamsFromObject(schemas: ISchemaObject[], isLocal = false) {
 }
 
 export function resolveItem(propertyName, current, required = [], isLocal = false) {
-    if ((current as any)['$ref']) {
-        const value = current['$ref'];
-        const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
+    if ((current as any).$ref) {
+        const value = current.$ref;
+        const refItem = namedProp(propertyName, required.indexOf(propertyName) === -1);
         const refName = interfaceNameFromRef(value);
-        return getDefinitionReference(item, propertyName, refName, isLocal);
+        return getDefinitionReference(refItem, propertyName, refName, isLocal);
     }
+    const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
     if (current.type) {
-        switch(current.type) {
+        switch (current.type) {
             case "string": {
-                const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
                 item.type = ts.createNode(ts.SyntaxKind.StringKeyword);
                 return item;
             }
             case "number":
             case "integer": {
-                const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
                 item.type = ts.createNode(ts.SyntaxKind.NumberKeyword);
                 return item;
             }
             case "boolean": {
-                const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
                 item.type = ts.createNode(ts.SyntaxKind.BooleanKeyword);
                 return item;
             }
             case "array": {
-                const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
-                if (current.items['$ref']) {
-                    const arrayRef = current.items['$ref'];
+                if (current.items.$ref) {
+                    const arrayRef = current.items.$ref;
                     const refName = interfaceNameFromRef(arrayRef);
-                    return getDefinitionReference(item, propertyName, refName, isLocal);
+                    const arrayType = ts.createTypeReferenceNode(refName, undefined);
+                    if (!isLocal) {
+                        const leftName = ts.createIdentifier("Definitions");
+                        arrayType.typeName = ts.createQualifiedName(leftName, refName);
+                    }
+                    item.type = ts.createArrayTypeNode(arrayType);
+                } else {
+                    const arrayType: any = getLiteralType(current.items.type);
+                    item.type = ts.createArrayTypeNode(arrayType);
                 }
-                const arrayType: any = getLiteralType(current.items.type);
-                item.type = ts.createArrayTypeNode(arrayType);
                 return item;
             }
         }
@@ -236,22 +240,22 @@ export function resolveItem(propertyName, current, required = [], isLocal = fals
 }
 
 export function getLiteralType(type: TypeKey) {
-    switch(type) {
+    switch (type) {
         case "string": {
-            return ts.createNode(ts.SyntaxKind.StringKeyword)
+            return ts.createNode(ts.SyntaxKind.StringKeyword);
         }
         case "boolean": {
-            return ts.createNode(ts.SyntaxKind.BooleanKeyword)
+            return ts.createNode(ts.SyntaxKind.BooleanKeyword);
         }
         case "integer":
         case "number": {
-            return ts.createNode(ts.SyntaxKind.NumberKeyword)
+            return ts.createNode(ts.SyntaxKind.NumberKeyword);
         }
     }
 }
 
 export function interfaceNameFromRef(ref: string): string {
-    const [refName] = ref.split('/').slice(-1);
+    const [refName] = ref.split("/").slice(-1);
     return dashToStartCase(refName);
 }
 
@@ -267,15 +271,14 @@ export function namedProp(name: string, optional = false) {
     return prop;
 }
 
-
 export interface SwaggerInput {
-    paths: { [urlPath: string]: PathsItem }
-    definitions: { [name: string]: DefinitionsItem }
+    paths: { [urlPath: string]: PathsItem };
+    definitions: { [name: string]: DefinitionsItem };
 }
 
 export type MethodKeys = "put" | "post" | "get" | "delete";
 export type ResponseCode = "200" | "401" | "default";
-export type PathsItem = { [K in MethodKeys ]: MethodItem }
+export type PathsItem = { [K in MethodKeys ]: MethodItem };
 
 export interface MethodItem {
     tags: string[];
@@ -284,19 +287,22 @@ export interface MethodItem {
     parameters: IParametersItem[];
     responses: { [K in ResponseCode ]: IResponsesItem};
 }
+
 export interface SchemaParam {
     name: string;
-    'in': "body";
+    "in": "body";
     schema: ISchemaObject;
 
 }
+
 export interface PathParam {
     name: string;
-    'in': "path";
+    "in": "path";
     type: TypeKey;
-    required: boolean
-    description?: string
+    required: boolean;
+    description?: string;
 }
+
 export type IParametersItem = SchemaParam | PathParam;
 
 export interface ISchemaObject {
@@ -307,12 +313,12 @@ export interface ISchemaObject {
 }
 
 export interface IProperties {
-    [propertyName: string]: IDefinitionsItemProperties
+    [propertyName: string]: IDefinitionsItemProperties;
 }
 
 export type IResponsesSchema = {
     $ref: string
-    type?: TypeKey
+    type?: TypeKey,
 } | IDefinitionsItemProperties;
 
 export interface IResponsesItem {
@@ -320,7 +326,7 @@ export interface IResponsesItem {
     schema: IResponsesSchema;
 }
 
-export type PropDefs = { [index: string]: IDefinitionsItemProperties };
+export interface PropDefs { [index: string]: IDefinitionsItemProperties; }
 
 export interface DefinitionsItem {
     type: "object";
@@ -350,4 +356,4 @@ export type IDefinitionsItemProperties = {
     type: "array"
     description?: string;
     items: IDefinitionsItemProperties
-}
+};
