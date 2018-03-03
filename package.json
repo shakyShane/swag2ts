@@ -1,5 +1,5 @@
 {
-  "name": "swagger2ts",
+  "name": "swag2ts",
   "version": "1.0.0",
   "description": "",
   "main": "dist/swagger.js",

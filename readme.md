@@ -1,6 +1,6 @@
 ## Todo
 
-## `npm install -g swagger-ts`
+## `npm install -g swag2ts`
 
 > Automatically generate Typescript namespaces from Swagger definitions
 
@@ -34,15 +34,15 @@ export namespace Definitions {
 ## Quick-start
 ```bash
 # install
-npm install -g swagger-ts
+npm install -g swag2ts
 # or 
-yarn global add swagger-ts
+yarn global add swag2ts
 
 # run against a single JSON file
-swagger-ts dir/myfile.json
+swag2ts dir/myfile.json
 
 # or pipe json to it
-curl http://some.swagger.api/schema | swagger-ts --stdin
+curl http://some.swagger.api/schema | swag2ts --stdin
 ```
 
 [x] - GET url params 
