@@ -21,7 +21,7 @@ export function parse(json: SwaggerInput): Array<[string, Statement[]]> {
                 .map((methodType: MethodKeys) => {
                     const item: MethodItem = current[methodType];
                     const name = item.tags[0];
-                    const bodyMembers = getParamsFromObject(item.parameters.filter(x => x.in === 'body').map(x => x.schema));
+                    const bodyMembers = getParamsFromObject((item.parameters||[]).filter(x => x.in === 'body').map(x => x.schema));
                     return {
                         displayName: upper(name) + upper(methodType),
                         method: methodType,
@@ -48,7 +48,9 @@ export function parse(json: SwaggerInput): Array<[string, Statement[]]> {
 
         const responses = item.responses;
 
-        const statements = [...vars, item.body, ...responses];
+        const body = (item.body.members.length > 0) ? item.body : null;
+
+        const statements = [...vars, body, ...responses].filter(Boolean);
 
         return [item.displayName, statements];
     });
@@ -59,7 +61,7 @@ export function parse(json: SwaggerInput): Array<[string, Statement[]]> {
         .keys(json.definitions)
         .map((key) => {
             const name = dashToStartCase(key);
-            const members = getParamsFromObject([json.definitions[key]]);
+            const members = getParamsFromObject([<any>json.definitions[key]]);
             const int = createInterface(name, members);
             return int;
         });
@@ -89,13 +91,6 @@ export function getResponses(responses: { [K in ResponseCode ]: IResponsesItem})
             return getDefRef(node, typeName, dashRefName);
         } else {
             return resolveFromTopLevelSchema(typeName, schema);
-            // const [refName] = schema['$ref'].split('/').slice(-1);
-            // const dashRefName = dashToStartCase(refName);
-            // const node : any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
-            // node.type =
-            // node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
-            // return getDefRef(node, typeName, dashRefName);
-            // console.log(resolveItem());
         }
     }).filter(Boolean);
 }
@@ -135,7 +130,7 @@ export function resolveFromTopLevelSchema(name, input: IResponsesSchema) {
 export function getParamsFromObject(schemas: ISchemaObject[]) {
     return schemas.reduce((acc, schema) => {
         const {required, properties, type} = schema;
-        const members = Object.keys(properties).map((propertyName: string) => {
+        const members = Object.keys((properties || {})).map((propertyName: string) => {
             const current: IDefinitionsItemProperties = properties[propertyName];
             return resolveItem(propertyName, current, required);
         });
