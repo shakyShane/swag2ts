@@ -53,7 +53,20 @@ export function parse(json: SwaggerInput): Array<[string, Statement[]]> {
         return [item.displayName, statements];
     });
 
-    return modules;
+
+    // console.log(json.definitions);
+    const definitions = Object
+        .keys(json.definitions)
+        .map((key) => {
+            const name = dashToStartCase(key);
+            const members = getParamsFromObject([json.definitions[key]]);
+            const int = createInterface(name, members);
+            return int;
+        });
+
+    modules.push(['Definitions', definitions]);
+
+    return modules
 }
 
 export function dashToStartCase(string) {
@@ -229,6 +242,7 @@ export interface IParametersItem {
 export interface ISchemaObject {
     required: string[];
     properties: IProperties;
+    description?: string;
     type: "object";
 }
 

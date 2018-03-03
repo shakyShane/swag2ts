@@ -15,6 +15,16 @@ export namespace AcmeManageBasketAddToBasketV1Put {
     export type Response200 = string;
     export type Response201 = number;
     export type Response202 = boolean;
-    export type Response401 = Definitions.AcmeCatalogProductPurchaseOptionResponse;
+    export type Response401 = Definitions.AcmeCatalogProductPurchaseOptionInterface;
     export type ResponseDefault = Definitions.AcmeCatalogProductPurchaseOptionResponse;
+}
+export namespace Definitions {
+    export interface AcmeCatalogProductPurchaseOptionInterface {
+        type: string;
+        available: boolean;
+        in_stock: boolean;
+    }
+    export interface AcmeCatalogProductPurchaseOptionResponse {
+        status: string;
+    }
 }

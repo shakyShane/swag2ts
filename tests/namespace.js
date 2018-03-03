@@ -7,6 +7,6 @@ describe("namespace generation", function() {
     it('works ', function() {
         const miniExpected = readFileSync('./tests/expected/mini.ts', 'utf8');
         const actual = createDefs(stub1);
-        console.log(actual);
+        assert.equal(actual, miniExpected);
     });
 });

@@ -92,7 +92,7 @@
           "401": {
             "description": "401 Unauthorized",
             "schema": {
-              "$ref": "#/definitions/acme-catalog-product-purchase-option-response"
+              "$ref": "#/definitions/acme-catalog-product-purchase-option-interface"
             }
           },
           "default": {
@@ -125,18 +125,18 @@
         "available",
         "in_stock"
       ]
-    }
-  },
-  "acme-catalog-product-purchase-option-response": {
-    "type": "object",
-    "description": "",
-    "properties": {
-      "status": {
-        "type": "success"
-      }
     },
-    "required": [
-      "status"
-    ]
+    "acme-catalog-product-purchase-option-response": {
+      "type": "object",
+      "description": "",
+      "properties": {
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    }
   }
 }
