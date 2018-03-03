@@ -1,15 +1,15 @@
 import * as ts from 'typescript';
-import {createConst, createInterface, createModule, createStatement} from "./swagger";
+import {createConst, createInterface, createStatement} from "./swagger";
 import {Statement} from "typescript";
 
-export const kindMap = {
-    [ts.SyntaxKind.NullKeyword]: ts.SyntaxKind.NullKeyword,
-    [ts.SyntaxKind.StringLiteral]: ts.SyntaxKind.StringKeyword,
-    [ts.SyntaxKind.FirstLiteralToken]: ts.SyntaxKind.NumberKeyword,
-    [ts.SyntaxKind.TrueKeyword]: ts.SyntaxKind.BooleanKeyword,
-    [ts.SyntaxKind.FalseKeyword]: ts.SyntaxKind.BooleanKeyword,
-    [ts.SyntaxKind.NumericLiteral]: ts.SyntaxKind.NumberKeyword,
-};
+// export const kindMap = {
+//     [ts.SyntaxKind.NullKeyword]: ts.SyntaxKind.NullKeyword,
+//     [ts.SyntaxKind.StringLiteral]: ts.SyntaxKind.StringKeyword,
+//     [ts.SyntaxKind.FirstLiteralToken]: ts.SyntaxKind.NumberKeyword,
+//     [ts.SyntaxKind.TrueKeyword]: ts.SyntaxKind.BooleanKeyword,
+//     [ts.SyntaxKind.FalseKeyword]: ts.SyntaxKind.BooleanKeyword,
+//     [ts.SyntaxKind.NumericLiteral]: ts.SyntaxKind.NumberKeyword,
+// };
 
 export interface Block {
     displayName: string
