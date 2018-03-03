@@ -21,11 +21,13 @@ export function parse(json: SwaggerInput): Array<[string, Statement[]]> {
                 .map((methodType: MethodKeys) => {
                     const item: MethodItem = current[methodType];
                     const name = item.tags[0];
-                    const bodyMembers = getParams(item.parameters.filter(x => x.in === 'body').map(x => x.schema));
+                    const bodyMembers = getParamsFromObject(item.parameters.filter(x => x.in === 'body').map(x => x.schema));
+                    const responses = item.responses;
                     return {
                         displayName: upper(name) + upper(methodType),
                         method: methodType,
                         body: createInterface('Body', bodyMembers),
+                        responses: getResponses(item.responses),
                         variables: {
                             path: key,
                             description: item.description,
@@ -44,7 +46,9 @@ export function parse(json: SwaggerInput): Array<[string, Statement[]]> {
                 return createStatement(createConst(name, value));
             });
 
-        const statements = [...vars, item.body];
+        const responses = item.responses;
+
+        const statements = [...vars, item.body, ...responses];
 
         return [item.displayName, statements];
     });
@@ -60,51 +64,84 @@ export function upper(string) {
     return string[0].toUpperCase() + string.slice(1);
 }
 
-export function getParams(schemas: ISchema[]) {
+export function getResponses(responses: { [K in ResponseCode ]: IResponsesItem}) {
+    return Object.keys(responses).map(code => {
+        const current = responses[code];
+        const schema: IDefinitionsItemProperties = current.schema;
+        const typeName = `Response${code === 'default' ? 'Default' : code}`;
+        if (schema['$ref']) {
+            const dashRefName = interfaceNameFromRef(schema['$ref']);
+            const node : any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
+            node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
+            return getDefRef(node, typeName, dashRefName);
+        } else {
+            // const [refName] = schema['$ref'].split('/').slice(-1);
+            // const dashRefName = dashToStartCase(refName);
+            // const node : any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
+            // node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
+            // return getDefRef(node, typeName, dashRefName);
+            // console.log(resolveItem());
+        }
+    }).filter(Boolean);
+}
+
+function getDefRef(node, name, refName) {
+    const leftName = ts.createIdentifier('Definitions');
+    node.type = ts.createTypeReferenceNode(refName, undefined);
+    node.type.typeName = ts.createQualifiedName(leftName, refName);
+    node.name = ts.createIdentifier(name);
+    return node;
+}
+
+export function getParamsFromObject(schemas: ISchema[]) {
     return schemas.reduce((acc, schema) => {
         const {required, properties, type} = schema;
         const members = Object.keys(properties).map((propertyName: string) => {
             const current: IDefinitionsItemProperties = properties[propertyName];
-            if ((current as any)['$ref']) {
-                const value = current['$ref'];
-                const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
-                item.type = ts.createTypeReferenceNode(interfaceNameFromRef(value), undefined);
-                return item;
-            }
-            if (current.type) {
-                switch(current.type) {
-                    case "string": {
-                        const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
-                        item.type = ts.createNode(ts.SyntaxKind.StringKeyword);
-                        return item;
-                    }
-                    case "number":
-                    case "integer": {
-                        const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
-                        item.type = ts.createNode(ts.SyntaxKind.NumberKeyword);
-                        return item;
-                    }
-                    case "boolean": {
-                        const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
-                        item.type = ts.createNode(ts.SyntaxKind.BooleanKeyword);
-                        return item;
-                    }
-                    case "array": {
-                        const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
-                        if (current.items['$ref']) {
-                            const arrayRef = current.items['$ref'];
-                            item.type = ts.createTypeReferenceNode(interfaceNameFromRef(arrayRef), undefined);
-                            return item;
-                        }
-                        const arrayType: any = getLiteralType(current.items.type);
-                        item.type = ts.createArrayTypeNode(arrayType);
-                        return item;
-                    }
-                }
-            }
+            return resolveItem(propertyName, current, required);
         });
         return acc.concat(members);
     }, []).filter(Boolean);
+}
+
+export function resolveItem(propertyName, current, required = []) {
+    if ((current as any)['$ref']) {
+        const value = current['$ref'];
+        const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
+        const refName = interfaceNameFromRef(value);
+        return getDefRef(item, propertyName, refName);
+    }
+    if (current.type) {
+        switch(current.type) {
+            case "string": {
+                const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
+                item.type = ts.createNode(ts.SyntaxKind.StringKeyword);
+                return item;
+            }
+            case "number":
+            case "integer": {
+                const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
+                item.type = ts.createNode(ts.SyntaxKind.NumberKeyword);
+                return item;
+            }
+            case "boolean": {
+                const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
+                item.type = ts.createNode(ts.SyntaxKind.BooleanKeyword);
+                return item;
+            }
+            case "array": {
+                const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
+                if (current.items['$ref']) {
+                    const arrayRef = current.items['$ref'];
+                    const refName = interfaceNameFromRef(arrayRef);
+                    return getDefRef(item, propertyName, refName);
+                }
+                const arrayType: any = getLiteralType(current.items.type);
+                item.type = ts.createArrayTypeNode(arrayType);
+                return item;
+            }
+        }
+    }
 }
 
 export function getLiteralType(type: TypeKey) {
@@ -123,7 +160,8 @@ export function getLiteralType(type: TypeKey) {
 }
 
 export function interfaceNameFromRef(ref: string): string {
-    return "Shane";
+    const [refName] = ref.split('/').slice(-1);
+    return dashToStartCase(refName);
 }
 
 export function namedProp(name: string, optional = false) {

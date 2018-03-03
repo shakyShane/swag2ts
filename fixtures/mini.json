@@ -71,7 +71,8 @@
           "200": {
             "description": "200 Success.",
             "schema": {
-              "$ref": "#/definitions/acme-catalog-product-purchase-option-response"
+              "type": "string",
+              "description": "Token created"
             }
           },
           "401": {

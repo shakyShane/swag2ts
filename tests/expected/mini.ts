@@ -11,7 +11,7 @@ export namespace AcmeManageBasketAddToBasketV1Put {
         pets: string[];
         petsWithRef?: Definitions.AcmeCatalogProductPurchaseOptionInterface;
     }
-    export type Response200 = Definitions.AcmeCatalogProductPurchaseOptionResponse;
+    export type Response200 = string;
     export type Response401 = Definitions.AcmeCatalogProductPurchaseOptionResponse;
     export type ResponseDefault = Definitions.AcmeCatalogProductPurchaseOptionResponse;
 }
