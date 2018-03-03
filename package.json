@@ -1,0 +1,18 @@
+{
+  "name": "swagger-ts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/swagger.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "files": [
+    "dist"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^2.7.2"
+  }
+}
