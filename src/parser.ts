@@ -11,7 +11,17 @@ export const kindMap = {
     [ts.SyntaxKind.NumericLiteral]: ts.SyntaxKind.NumberKeyword,
 };
 
-export function parse(json: SwaggerInput): Array<[string, Statement[]]> {
+export interface Block {
+    displayName: string
+    statements: Statement[]
+}
+
+export interface ParseOutput {
+    modules: Block[],
+    definitions: Block[]
+}
+
+export function parse(json: SwaggerInput): ParseOutput {
     const parsed = Object
         .keys(json.paths)
         .map(key => ({key, current: json.paths[key]}))
@@ -38,7 +48,7 @@ export function parse(json: SwaggerInput): Array<[string, Statement[]]> {
         }, []);
 
 
-    const modules = parsed.map((item): [string, Statement[]] => {
+    const modules = parsed.map((item): Block => {
         const vars = Object
             .keys(item.variables)
             .map(key => [key, item.variables[key]])
@@ -47,12 +57,15 @@ export function parse(json: SwaggerInput): Array<[string, Statement[]]> {
             });
 
         const responses = item.responses;
+        const responseUnion = getResponseUnion(responses);
 
         const body = (item.body.members.length > 0) ? item.body : null;
+        const statements = [...vars, body, responseUnion, ...responses].filter(Boolean);
 
-        const statements = [...vars, body, ...responses].filter(Boolean);
-
-        return [item.displayName, statements];
+        return {
+            displayName: item.displayName,
+            statements
+        };
     });
 
 
@@ -66,9 +79,13 @@ export function parse(json: SwaggerInput): Array<[string, Statement[]]> {
             return int;
         });
 
-    modules.push(['Definitions', definitions]);
-
-    return modules
+    return {
+        modules,
+        definitions: [{
+            displayName: 'Definitions',
+            statements: definitions
+        }]
+    }
 }
 
 export function dashToStartCase(string) {
@@ -77,6 +94,17 @@ export function dashToStartCase(string) {
 
 export function upper(string) {
     return string[0].toUpperCase() + string.slice(1);
+}
+
+export function getResponseUnion(responses) {
+    const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
+    node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
+    node.name = ts.createIdentifier('Response');
+    node.type = ts.createUnionOrIntersectionTypeNode(
+        ts.SyntaxKind.UnionType,
+        responses.map(resp => ts.createTypeReferenceNode(resp.name.escapedText, undefined))
+    );
+    return node;
 }
 
 export function getResponses(responses: { [K in ResponseCode ]: IResponsesItem}) {

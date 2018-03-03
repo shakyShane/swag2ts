@@ -4,7 +4,7 @@ import {parse, SwaggerInput} from './parser';
 
 export function createDefs(json: SwaggerInput): string {
     const parsed = parse(json);
-    const printed = printMany(parsed);
+    const printed = printMany(parsed.modules.concat(parsed.definitions));
     return printed;
 }
 

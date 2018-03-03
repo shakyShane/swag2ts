@@ -12,6 +12,7 @@ export namespace AcmeManageBasketAddToBasketV1Put {
         pets: string[];
         petsWithRef?: Definitions.AcmeCatalogProductPurchaseOptionInterface;
     }
+    export type Response = Response200 | Response201 | Response202 | Response401 | ResponseDefault;
     export type Response200 = string;
     export type Response201 = number;
     export type Response202 = boolean;

@@ -1,5 +1,5 @@
 // const json = require('./fixtures/swagger-01');
-const json = require('/Users/shakyshane/sites/jh/selco-m2/swagger.json');
+const json = require('./fixtures/large');
 const swagger = require('./');
 const {createConst, createDefs, createInterface, createStatement, printNamespace, printMany} = swagger;
 // const ts = require('typescript');
