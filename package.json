@@ -8,7 +8,8 @@
     "lint": "tslint -c tslint.json 'src/**/*.ts' --fix --format stylish",
     "unit": "mocha tests/*",
     "build": "tsc",
-    "test": "npm run lint && npm run build && npm run unit"
+    "test": "npm run lint && npm run build && npm run unit",
+    "prepublishOnly": "npm test"
   },
   "keywords": [],
   "files": [

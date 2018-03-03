@@ -49,11 +49,11 @@ if (options.stdin) {
         console.log(`
 You can pipe JSON to this program with the --stdin flag:
 
-    curl http://example.com/some-json | swagger-ts --stdin
+    curl http://example.com/some-json | swag2ts --stdin
 
 Or, provide path names:
 
-    swagger-ts path/to/my-file.json
+    swag2ts path/to/my-file.json
         `);
     } else {
         const queue = inputs
