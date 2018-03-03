@@ -22,13 +22,13 @@ export function parse(json: SwaggerInput): Array<[string, Statement[]]> {
                     const item: MethodItem = current[methodType];
                     const name = item.tags[0];
                     const bodyMembers = getParamsFromObject(item.parameters.filter(x => x.in === 'body').map(x => x.schema));
-                    const responses = item.responses;
                     return {
                         displayName: upper(name) + upper(methodType),
                         method: methodType,
                         body: createInterface('Body', bodyMembers),
                         responses: getResponses(item.responses),
                         variables: {
+                            method: methodType.toUpperCase(),
                             path: key,
                             description: item.description,
                             operationId: item.operationId,
@@ -75,9 +75,11 @@ export function getResponses(responses: { [K in ResponseCode ]: IResponsesItem})
             node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
             return getDefRef(node, typeName, dashRefName);
         } else {
+            return resolveFromTopLevelSchema(typeName, schema);
             // const [refName] = schema['$ref'].split('/').slice(-1);
             // const dashRefName = dashToStartCase(refName);
             // const node : any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
+            // node.type =
             // node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
             // return getDefRef(node, typeName, dashRefName);
             // console.log(resolveItem());
@@ -93,7 +95,31 @@ function getDefRef(node, name, refName) {
     return node;
 }
 
-export function getParamsFromObject(schemas: ISchema[]) {
+export function resolveFromTopLevelSchema(name, input: IResponsesSchema) {
+    if (input['$ref']) {
+        return;
+    }
+    const node : any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
+    node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
+    node.name = ts.createIdentifier(name);
+    switch(input.type) {
+        case "string": {
+            node.type = ts.createTypeReferenceNode("string", undefined);
+            return node;
+        }
+        case "integer":
+        case "number": {
+            node.type = ts.createTypeReferenceNode("number", undefined);
+            return node;
+        }
+        case "boolean": {
+            node.type = ts.createTypeReferenceNode("boolean", undefined);
+            return node;
+        }
+    }
+}
+
+export function getParamsFromObject(schemas: ISchemaObject[]) {
     return schemas.reduce((acc, schema) => {
         const {required, properties, type} = schema;
         const members = Object.keys(properties).map((propertyName: string) => {
@@ -197,10 +223,10 @@ export interface MethodItem {
 export interface IParametersItem {
     name: string;
     'in': string;
-    schema: ISchema;
+    schema: ISchemaObject;
 }
 
-export interface ISchema {
+export interface ISchemaObject {
     required: string[];
     properties: IProperties;
     type: "object";
@@ -210,9 +236,10 @@ export interface IProperties {
     [propertyName: string]: IDefinitionsItemProperties
 }
 
-export interface IResponsesSchema {
+export type IResponsesSchema = {
     $ref: string
-}
+    type?: TypeKey
+} | IDefinitionsItemProperties;
 
 export interface IResponsesItem {
     description: string;

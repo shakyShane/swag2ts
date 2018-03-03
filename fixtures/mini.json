@@ -75,6 +75,20 @@
               "description": "Token created"
             }
           },
+          "201": {
+            "description": "201 Success.",
+            "schema": {
+              "type": "number",
+              "description": "Token created 2"
+            }
+          },
+          "202": {
+            "description": "202 Success.",
+            "schema": {
+              "type": "boolean",
+              "description": "Token created 3"
+            }
+          },
           "401": {
             "description": "401 Unauthorized",
             "schema": {
