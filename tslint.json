@@ -6,7 +6,8 @@
     "jsRules": {},
     "rules": {
         "interface-name": false,
-        "no-string-literal": false
+        "no-string-literal": false,
+        "only-arrow-functions": false
     },
     "rulesDirectory": []
 }

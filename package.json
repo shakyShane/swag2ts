@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/swagger.js",
+  "bin": "dist/bin.js",
   "scripts": {
     "lint": "tslint -c tslint.json 'src/**/*.ts' --fix --format stylish",
     "unit": "mocha tests/*",
@@ -14,12 +15,16 @@
     "dist"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
-    "tslint": "^5.9.1",
+    "get-stdin": "^6.0.0",
+    "immutable": "^3.8.2",
+    "minimist": "^1.2.0",
     "typescript": "^2.7.2"
   },
   "devDependencies": {
+    "@types/node": "^9.4.6",
+    "tslint": "^5.9.1",
     "mocha": "^5.0.1"
   }
 }
