@@ -31,11 +31,28 @@ export function parse(json: SwaggerInput): ParseOutput {
                 .map((methodType: MethodKeys) => {
                     const item: MethodItem = current[methodType];
                     const name = item.tags[0];
-                    const bodyMembers = getParamsFromObject((item.parameters||[]).filter(x => x.in === 'body').map(x => x.schema));
+                    const bodyItems = (item.parameters||[])
+                        .map(x => {
+                            if (x.in === 'body') {
+                                return x.schema;
+                            }
+                        })
+                        .filter(Boolean);
+
+                    const bodyMembers = getParamsFromObject(bodyItems);
+                    const pathItems = (item.parameters||[])
+                        .map(x => {
+                            if (x.in === 'path') {
+                                return x;
+                            }
+                        })
+                        .filter(Boolean);
+
                     return {
                         displayName: upper(name) + upper(methodType),
                         method: methodType,
                         body: createInterface('Body', bodyMembers),
+                        pathParams: getPathMembers(pathItems),
                         responses: getResponses(item.responses),
                         variables: {
                             method: methodType.toUpperCase(),
@@ -60,7 +77,8 @@ export function parse(json: SwaggerInput): ParseOutput {
         const responseUnion = getResponseUnion(responses);
 
         const body = (item.body.members.length > 0) ? item.body : null;
-        const statements = [...vars, body, responseUnion, ...responses].filter(Boolean);
+        const pathParms = (item.pathParams.members.length > 0) ? item.pathParams : null;
+        const statements = [...vars, pathParms, body, responseUnion, ...responses].filter(Boolean);
 
         return {
             displayName: item.displayName,
@@ -96,6 +114,15 @@ export function upper(string) {
     return string[0].toUpperCase() + string.slice(1);
 }
 
+
+export function getPathMembers(items: PathParam[]) {
+    const members = items.map(item => {
+        return resolveItem(item.name, item, [item.name]);
+    });
+    const inter = createInterface('PathParams', members);
+    return inter;
+}
+
 export function getResponseUnion(responses) {
     const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
     node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
@@ -116,14 +143,14 @@ export function getResponses(responses: { [K in ResponseCode ]: IResponsesItem})
             const dashRefName = interfaceNameFromRef(schema['$ref']);
             const node : any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
             node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
-            return getDefRef(node, typeName, dashRefName);
+            return getDefinitionReference(node, typeName, dashRefName);
         } else {
             return resolveFromTopLevelSchema(typeName, schema);
         }
     }).filter(Boolean);
 }
 
-function getDefRef(node, name, refName) {
+function getDefinitionReference(node, name, refName) {
     const leftName = ts.createIdentifier('Definitions');
     node.type = ts.createTypeReferenceNode(refName, undefined);
     node.type.typeName = ts.createQualifiedName(leftName, refName);
@@ -171,7 +198,7 @@ export function resolveItem(propertyName, current, required = []) {
         const value = current['$ref'];
         const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
         const refName = interfaceNameFromRef(value);
-        return getDefRef(item, propertyName, refName);
+        return getDefinitionReference(item, propertyName, refName);
     }
     if (current.type) {
         switch(current.type) {
@@ -196,7 +223,7 @@ export function resolveItem(propertyName, current, required = []) {
                 if (current.items['$ref']) {
                     const arrayRef = current.items['$ref'];
                     const refName = interfaceNameFromRef(arrayRef);
-                    return getDefRef(item, propertyName, refName);
+                    return getDefinitionReference(item, propertyName, refName);
                 }
                 const arrayType: any = getLiteralType(current.items.type);
                 item.type = ts.createArrayTypeNode(arrayType);
@@ -255,12 +282,20 @@ export interface MethodItem {
     parameters: IParametersItem[];
     responses: { [K in ResponseCode ]: IResponsesItem};
 }
-
-export interface IParametersItem {
+export interface SchemaParam {
     name: string;
-    'in': string;
+    'in': "body";
     schema: ISchemaObject;
+
 }
+export interface PathParam {
+    name: string;
+    'in': "path";
+    type: TypeKey;
+    required: boolean
+    description?: string
+}
+export type IParametersItem = SchemaParam | PathParam;
 
 export interface ISchemaObject {
     required: string[];

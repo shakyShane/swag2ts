@@ -25,6 +25,20 @@
         "operationId": "acmeManageBasketAddToBasketV1AddProductPut",
         "parameters": [
           {
+            "name": "cartId",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "The cart ID."
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "type": "integer",
+            "required": true,
+            "description": "The item ID."
+          },
+          {
             "name": "$body",
             "in": "body",
             "schema": {

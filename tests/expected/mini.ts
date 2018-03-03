@@ -3,6 +3,10 @@ export namespace AcmeManageBasketAddToBasketV1Put {
     export const path = "/V1/baskets/mine/add";
     export const description = "";
     export const operationId = "acmeManageBasketAddToBasketV1AddProductPut";
+    export interface PathParams {
+        cartId: string;
+        itemId: number;
+    }
     export interface Body {
         productId: number;
         qty: number;
