@@ -1,6 +1,7 @@
 ## Todo
 
 [x] - GET url params 
-[ ] - simpler local refs in definitions
-[ ] - CLI 
+[x] - simpler local refs in definitions
+[ ] - array refs
+[ ] - CLI
 [ ] - support multiple file outputs

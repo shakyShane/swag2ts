@@ -92,7 +92,7 @@ export function parse(json: SwaggerInput): ParseOutput {
         .keys(json.definitions)
         .map((key) => {
             const name = dashToStartCase(key);
-            const members = getParamsFromObject([<any>json.definitions[key]]);
+            const members = getParamsFromObject([<any>json.definitions[key]], true);
             const int = createInterface(name, members);
             return int;
         });
@@ -150,10 +150,12 @@ export function getResponses(responses: { [K in ResponseCode ]: IResponsesItem})
     }).filter(Boolean);
 }
 
-function getDefinitionReference(node, name, refName) {
+function getDefinitionReference(node, name, refName, isLocal = false) {
     const leftName = ts.createIdentifier('Definitions');
     node.type = ts.createTypeReferenceNode(refName, undefined);
-    node.type.typeName = ts.createQualifiedName(leftName, refName);
+    if (!isLocal) {
+        node.type.typeName = ts.createQualifiedName(leftName, refName);
+    }
     node.name = ts.createIdentifier(name);
     return node;
 }
@@ -182,23 +184,23 @@ export function resolveFromTopLevelSchema(name, input: IResponsesSchema) {
     }
 }
 
-export function getParamsFromObject(schemas: ISchemaObject[]) {
+export function getParamsFromObject(schemas: ISchemaObject[], isLocal = false) {
     return schemas.reduce((acc, schema) => {
         const {required, properties, type} = schema;
         const members = Object.keys((properties || {})).map((propertyName: string) => {
             const current: IDefinitionsItemProperties = properties[propertyName];
-            return resolveItem(propertyName, current, required);
+            return resolveItem(propertyName, current, required, isLocal);
         });
         return acc.concat(members);
     }, []).filter(Boolean);
 }
 
-export function resolveItem(propertyName, current, required = []) {
+export function resolveItem(propertyName, current, required = [], isLocal = false) {
     if ((current as any)['$ref']) {
         const value = current['$ref'];
         const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
         const refName = interfaceNameFromRef(value);
-        return getDefinitionReference(item, propertyName, refName);
+        return getDefinitionReference(item, propertyName, refName, isLocal);
     }
     if (current.type) {
         switch(current.type) {
@@ -223,7 +225,7 @@ export function resolveItem(propertyName, current, required = []) {
                 if (current.items['$ref']) {
                     const arrayRef = current.items['$ref'];
                     const refName = interfaceNameFromRef(arrayRef);
-                    return getDefinitionReference(item, propertyName, refName);
+                    return getDefinitionReference(item, propertyName, refName, isLocal);
                 }
                 const arrayType: any = getLiteralType(current.items.type);
                 item.type = ts.createArrayTypeNode(arrayType);

@@ -146,11 +146,23 @@
       "properties": {
         "status": {
           "type": "string"
+        },
+        "localRef": {
+          "$ref": "#/definitions/ref-to-ref"
         }
       },
       "required": [
         "status"
       ]
+    },
+    "ref-to-ref": {
+      "type": "object",
+      "description": "",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      }
     }
   }
 }

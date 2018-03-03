@@ -31,5 +31,9 @@ export namespace Definitions {
     }
     export interface AcmeCatalogProductPurchaseOptionResponse {
         status: string;
+        localRef?: RefToRef;
+    }
+    export interface RefToRef {
+        name?: string;
     }
 }
