@@ -1,6 +1,9 @@
 const json = require('./fixtures/swagger-01');
-const {createConst, createInterface, createStatement, printNamespace, printMany} = require('./');
+const swagger = require('./');
+const {createConst, createDefs, createInterface, createStatement, printNamespace, printMany} = swagger;
 const ts = require('typescript');
+
+console.log(createDefs(json));
 
 const constLines =
     [
@@ -31,19 +34,19 @@ const moduleMembers = [
 
 const out = printMany([["First", moduleMembers], ["Second", moduleMembers]]);
 
-console.log(out);
+// console.log(out);
 
 const tsInput = `
-export namespace SelcoManageBasketAddToBasketV1 {
-    export const PutPath = '/V1/baskets/mine/add';
-    export const PutOperationId = 'selcoManageBasketAddToBasketV1AddProductPut';
-    export interface IPutBody {
+export namespace SelcoManageBasketAddToBasketV1Put {
+    export const path = '/V1/baskets/mine/add';
+    export const operationId = 'selcoManageBasketAddToBasketV1AddProductPut';
+    export interface Payload {
         productId: number
         qty: number
         purchaseType: string
     }
 }
-export namespace SelcoManageBasketAddToBasketV2 {}
+export namespace SelcoManageBasketAddToBasketV2Post {}
 `;
 
 

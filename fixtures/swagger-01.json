@@ -191,7 +191,8 @@
               "required": [
                 "productId",
                 "qty",
-                "purchaseType"
+                "purchaseType",
+                "pets"
               ],
               "properties": {
                 "productId": {
@@ -202,6 +203,22 @@
                 },
                 "purchaseType": {
                   "type": "string"
+                },
+                "user": {"$ref": "#/definitions/acme-catalog-product-purchase-option-interface"},
+                "stale": {
+                  "type": "boolean"
+                },
+                "pets": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "petsWithRef": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/acme-catalog-product-purchase-option-interface"
+                  }
                 }
               },
               "type": "object"

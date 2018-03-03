@@ -1,9 +1,11 @@
 import * as ts from 'typescript';
 import {printNamespace, printMany} from './printer';
-import {parse} from './parser';
+import {parse, SwaggerInput} from './parser';
 
-export function createDefs() {
-    console.log('yo!');
+export function createDefs(json: SwaggerInput): string {
+    const parsed = parse(json);
+    const printed = printMany(parsed);
+    return printed;
 }
 
 export function createConst(name: string, value: string): ts.VariableDeclaration {
@@ -56,3 +58,4 @@ export function createModule(name: string, statements = []) {
 }
 
 export {printNamespace, printMany, parse};
+

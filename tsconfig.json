@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "lib": ["es2015", "DOM"],
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+//    "noImplicitThis": true,
+//    "noUnusedLocals": true,
+//    "noUnusedParameters": true,
     "alwaysStrict": true,
     "pretty": true,
     "preserveConstEnums": true,
@@ -12,7 +12,8 @@
     "target": "es5",
     "newLine": "lf",
     "outDir": "dist",
-    "declaration": true
+    "declaration": true,
+    "noEmitOnError": false
   },
   "include": [
     "src/*"
