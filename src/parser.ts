@@ -1,5 +1,6 @@
 import * as ts from 'typescript';
 import {createConst, createInterface, createModule, createStatement} from "./swagger";
+import {Statement} from "typescript";
 
 export const kindMap = {
     [ts.SyntaxKind.NullKeyword]: ts.SyntaxKind.NullKeyword,
@@ -10,7 +11,7 @@ export const kindMap = {
     [ts.SyntaxKind.NumericLiteral]: ts.SyntaxKind.NumberKeyword,
 };
 
-export function parse(json: SwaggerInput) {
+export function parse(json: SwaggerInput): Array<[string, Statement[]]> {
     const parsed = Object
         .keys(json.paths)
         .map(key => ({key, current: json.paths[key]}))
@@ -35,7 +36,7 @@ export function parse(json: SwaggerInput) {
         }, []);
 
 
-    const modules = parsed.map(item => {
+    const modules = parsed.map((item): [string, Statement[]] => {
         const vars = Object
             .keys(item.variables)
             .map(key => [key, item.variables[key]])
@@ -44,10 +45,15 @@ export function parse(json: SwaggerInput) {
             });
 
         const statements = [...vars, item.body];
+
         return [item.displayName, statements];
     });
 
     return modules;
+}
+
+export function dashToStartCase(string) {
+    return string.split('-').map(x => upper(x)).join('')
 }
 
 export function upper(string) {

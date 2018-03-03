@@ -1,0 +1,127 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "2.1",
+    "title": "Magento Enterprise"
+  },
+  "host": "acme.m2",
+  "basePath": "/rest/default",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "acmeManageBasketAddToBasketV1",
+      "description": "Add to Basket API"
+    }
+  ],
+  "paths": {
+    "/V1/baskets/mine/add": {
+      "put": {
+        "tags": [
+          "acmeManageBasketAddToBasketV1"
+        ],
+        "description": "",
+        "operationId": "acmeManageBasketAddToBasketV1AddProductPut",
+        "parameters": [
+          {
+            "name": "$body",
+            "in": "body",
+            "schema": {
+              "required": [
+                "productId",
+                "qty",
+                "purchaseType",
+                "pets"
+              ],
+              "properties": {
+                "productId": {
+                  "type": "integer"
+                },
+                "qty": {
+                  "type": "number"
+                },
+                "purchaseType": {
+                  "type": "string"
+                },
+                "user": {
+                  "$ref": "#/definitions/acme-catalog-product-purchase-option-interface"
+                },
+                "stale": {
+                  "type": "boolean"
+                },
+                "pets": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "petsWithRef": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/acme-catalog-product-purchase-option-interface"
+                  }
+                }
+              },
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "200 Success.",
+            "schema": {
+              "$ref": "#/definitions/acme-catalog-product-purchase-option-response"
+            }
+          },
+          "401": {
+            "description": "401 Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/acme-catalog-product-purchase-option-response"
+            }
+          },
+          "default": {
+            "description": "Unexpected error",
+            "schema": {
+              "$ref": "#/definitions/acme-catalog-product-purchase-option-response"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "acme-catalog-product-purchase-option-interface": {
+      "type": "object",
+      "description": "",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "in_stock": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "available",
+        "in_stock"
+      ]
+    }
+  },
+  "acme-catalog-product-purchase-option-response": {
+    "type": "object",
+    "description": "",
+    "properties": {
+      "status": {
+        "type": "success"
+      }
+    },
+    "required": [
+      "status"
+    ]
+  }
+}

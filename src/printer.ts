@@ -1,5 +1,6 @@
 import * as ts from 'typescript';
 import {createModule} from "./swagger";
+import {Statement} from "typescript";
 
 export function printNamespace(name: string, statements) {
     const result = ts.createSourceFile('module', '', ts.ScriptTarget.ES2016);
@@ -10,12 +11,12 @@ export function printNamespace(name: string, statements) {
     return printer.printNode(ts.EmitHint.Unspecified, ns, result);
 }
 
-export function printMany(items) {
+export function printMany(items: Array<[string, Statement[]]>) {
     const result = ts.createSourceFile('module', '', ts.ScriptTarget.ES2016);
     const printer = ts.createPrinter({
         newLine: ts.NewLineKind.LineFeed
     });
-    result.statements = items.map(([name, members]) => {
+    (result as any).statements = items.map(([name, members]) => {
         return createModule(name, members);
     });
     return printer.printFile(result);
