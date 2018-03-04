@@ -1,11 +1,79 @@
 import * as ts from "typescript";
+import {ImportDeclaration, Statement} from "typescript";
 import {parse, SwaggerInput} from "./parser";
 import {printMany, printNamespace} from "./printer";
 
-export function createDefs(json: SwaggerInput): string {
-    const parsed = parse(json);
+export enum OutputTypes {
+    Single = "single",
+    Multi = "multi",
+}
+
+export interface Options {
+    outputType?: OutputTypes;
+    importPath?: string;
+    defName?: string;
+    outDir?: string;
+}
+
+// defaults
+const defaults = {
+    defName: "Definitions",
+    importPath: "./Definitions",
+    outDir: "swagger",
+    outputType: OutputTypes.Single,
+};
+
+export function getOptions(input) {
+    return {
+        ...defaults,
+        ...input,
+    };
+}
+
+export function createDefs(json: SwaggerInput, options = {}): string {
+
+    const merged = getOptions(options);
+    const parsed = parse(json, merged);
     const printed = printMany(parsed.modules.concat(parsed.definitions));
     return printed;
+}
+
+export interface SplitDefsOutputItem {
+    displayName: string;
+    content: string;
+    statements: Statement[];
+}
+
+export interface SplitDefsOutput {
+    modules: SplitDefsOutputItem[];
+    definitions: SplitDefsOutputItem[];
+}
+
+export function createSplitDefs(json: SwaggerInput, options = {}): SplitDefsOutput {
+    const merged = getOptions(options);
+    const parsed = parse(json, merged);
+    const {modules, definitions} = parsed;
+
+    const moduleFiles = modules.map((item) => {
+        return {
+            content: printMany([item], createImport(merged)),
+            displayName: `${item.displayName}.ts`,
+            statements: item.statements,
+        };
+    });
+
+    const definitionFiles = definitions.map((item) => {
+        return {
+            content: printMany([item]),
+            displayName: `${item.displayName}.ts`,
+            statements: item.statements,
+        };
+    });
+
+    return {
+        definitions: definitionFiles,
+        modules: moduleFiles,
+    };
 }
 
 export function createConst(name: string, value: string): ts.VariableDeclaration {
@@ -55,6 +123,21 @@ export function createModule(name: string, statements = []) {
         ts.createModuleBlock(statements),
         ts.NodeFlags.Namespace,
     );
+}
+
+export function createImport(options: Options): ImportDeclaration {
+    const im = ts.createImportDeclaration(undefined, undefined, undefined);
+    const identifier = ts.createIdentifier(options.defName);
+    const importSe = ts.createImportSpecifier(undefined, identifier);
+    const namedId = ts.createNamedImports([importSe]);
+
+    const clause = ts.createImportClause(undefined, undefined);
+    clause.namedBindings = namedId;
+
+    im.importClause = clause;
+    im.moduleSpecifier = ts.createLiteral(options.importPath);
+
+    return im;
 }
 
 export {printNamespace, printMany, parse};

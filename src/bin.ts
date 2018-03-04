@@ -1,24 +1,49 @@
 #!/usr/bin/env node
 import {existsSync, readFileSync} from "fs";
+import {outputFileSync} from "fs-extra";
 import stdin = require("get-stdin");
 import {OrderedSet} from "immutable";
 import minimist = require("minimist");
 import {join, parse, ParsedPath} from "path";
-import {createDefs} from "./swagger";
+import {SwaggerInput} from "./parser";
+import {createDefs, createSplitDefs, getOptions, OutputTypes} from "./swagger";
 
 const argv = minimist(process.argv.slice(2));
 
 // unique input
 const inputs = OrderedSet<string>(argv._);
 
-// defaults
-const defaults = {};
+const options = getOptions(argv);
 
 // merged options with defaults
-const options = {
-    ...defaults,
-    ...argv,
-};
+
+function createOutput(json: SwaggerInput) {
+
+    switch (options.outputType) {
+        case OutputTypes.Single: {
+            // tslint:disable-next-line
+            return console.log(createDefs(json, options));
+        }
+        case OutputTypes.Multi: {
+            const res = createSplitDefs(json, options);
+            const defOutput = join(options.outDir, res.definitions[0].displayName);
+
+            res.modules.concat(res.definitions).forEach((item) => {
+                outputFileSync(join(options.outDir, item.displayName), item.content);
+            });
+            // tslint:disable-next-line
+            console.log(`${res.modules.length} module(s) written to '${options.outDir}'`);
+            // tslint:disable-next-line
+            console.log(`1 definition file written to '${defOutput}'`);
+
+            break;
+        }
+        default: {
+            // tslint:disable-next-line
+            return console.error("Output type not supported");
+        }
+    }
+}
 
 if (options.stdin) {
     stdin().then((str: string) => {
@@ -28,7 +53,8 @@ if (options.stdin) {
         } else {
             try {
                 // tslint:disable-next-line
-                console.log(createDefs(JSON.parse(str)));
+                const json = JSON.parse(str);
+                createOutput(json);
             } catch (e) {
                 // tslint:disable-next-line
                 console.error("Invalid JSON");
@@ -89,7 +115,7 @@ Or, provide path names:
             })
                 .forEach((json: any) => {
                     // tslint:disable-next-line
-                    console.log(createDefs(json));
+                    createOutput(json);
                 });
         }
     }

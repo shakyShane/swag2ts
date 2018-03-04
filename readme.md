@@ -53,4 +53,6 @@ curl http://some.swagger.api/schema | swag2ts --stdin
 - [x] test + lint + build in npm test
 - [x] CLI stdin
 - [x] CLI files
-- [ ] support multiple file outputs
+- [ ] API
+- [x] support multiple file outputs
+- [ ] support separating paths from definitions in multi-file output

@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 import {Statement} from "typescript";
-import {createConst, createInterface, createStatement} from "./swagger";
+import {createConst, createInterface, createStatement, Options} from "./swagger";
 
 export interface Block {
     displayName: string;
@@ -12,48 +12,8 @@ export interface ParseOutput {
     definitions: Block[];
 }
 
-export function parse(json: SwaggerInput): ParseOutput {
-    const parsed = Object
-        .keys(json.paths)
-        .map((key) => ({key, current: json.paths[key]}))
-        .reduce((acc, {key, current}) => {
-            return acc.concat(Object
-                .keys(current)
-                .map((methodType: MethodKeys) => {
-                    const item: MethodItem = current[methodType];
-                    const name = item.tags[0];
-                    const bodyItems = (item.parameters || [])
-                        .map((x) => {
-                            if (x.in === "body") {
-                                return x.schema;
-                            }
-                        })
-                        .filter(Boolean);
-
-                    const bodyMembers = getParamsFromObject(bodyItems);
-                    const pathItems = (item.parameters || [])
-                        .map((x) => {
-                            if (x.in === "path") {
-                                return x;
-                            }
-                        })
-                        .filter(Boolean);
-
-                    return {
-                        body: createInterface("Body", bodyMembers),
-                        displayName: upper(name) + upper(methodType),
-                        method: methodType,
-                        pathParams: getPathMembers(pathItems),
-                        responses: getResponses(item.responses),
-                        variables: {
-                            description: item.description,
-                            method: methodType.toUpperCase(),
-                            operationId: item.operationId,
-                            path: key,
-                        },
-                    };
-                }));
-        }, []);
+export function parse(json: SwaggerInput, options: Options): ParseOutput {
+    const parsed = parseJson();
 
     const modules = parsed.map((item): Block => {
         const vars = Object
@@ -88,187 +48,230 @@ export function parse(json: SwaggerInput): ParseOutput {
 
     return {
         definitions: [{
-            displayName: "Definitions",
+            displayName: options.defName,
             statements: definitions,
         }],
         modules,
     };
-}
 
-export function dashToStartCase(input) {
-    return input.split("-").map((x) => upper(x)).join("");
-}
+    function parseJson() {
+        return Object
+            .keys(json.paths)
+            .map((key) => ({key, current: json.paths[key]}))
+            .reduce((acc, {key, current}) => {
+                return acc.concat(Object
+                    .keys(current)
+                    .map((methodType: MethodKeys) => {
+                        const item: MethodItem = current[methodType];
+                        const name = item.tags[0];
+                        const bodyItems = (item.parameters || [])
+                            .map((x) => {
+                                if (x.in === "body") {
+                                    return x.schema;
+                                }
+                            })
+                            .filter(Boolean);
 
-export function upper(input) {
-    return input[0].toUpperCase() + input.slice(1);
-}
+                        const bodyMembers = getParamsFromObject(bodyItems);
+                        const pathItems = (item.parameters || [])
+                            .map((x) => {
+                                if (x.in === "path") {
+                                    return x;
+                                }
+                            })
+                            .filter(Boolean);
 
-export function getPathMembers(items: PathParam[]) {
-    const members = items.map((item) => {
-        return resolveItem(item.name, item, [item.name]);
-    });
-    const inter = createInterface("PathParams", members);
-    return inter;
-}
-
-export function getResponseUnion(responses) {
-    const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
-    node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
-    node.name = ts.createIdentifier("Response");
-    node.type = ts.createUnionOrIntersectionTypeNode(
-        ts.SyntaxKind.UnionType,
-        responses.map((resp) => ts.createTypeReferenceNode(resp.name.escapedText, undefined)),
-    );
-    return node;
-}
-
-export function getResponses(responses: { [K in ResponseCode ]: IResponsesItem}) {
-    return Object.keys(responses).map((code) => {
-        const current = responses[code];
-        const schema: IDefinitionsItemProperties = current.schema;
-        const typeName = Number.isNaN(Number(code))
-            ? `Response${upper(code)}`
-            : `Response${code}`;
-        if (schema["$ref"]) {
-            const dashRefName = interfaceNameFromRef(schema["$ref"]);
-            const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
-            node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
-            return getDefinitionReference(node, typeName, dashRefName);
-        } else {
-            return resolveFromTopLevelSchema(typeName, schema, false);
-        }
-    }).filter(Boolean);
-}
-
-function getDefinitionReference(node, name, refName, isLocal = false) {
-    const leftName = ts.createIdentifier("Definitions");
-    node.type = ts.createTypeReferenceNode(refName, undefined);
-    if (!isLocal) {
-        node.type.typeName = ts.createQualifiedName(leftName, refName);
+                        return {
+                            body: createInterface("Body", bodyMembers),
+                            displayName: upper(name) + upper(methodType),
+                            method: methodType,
+                            pathParams: getPathMembers(pathItems),
+                            responses: getResponses(item.responses),
+                            variables: {
+                                description: item.description,
+                                method: methodType.toUpperCase(),
+                                operationId: item.operationId,
+                                path: key,
+                            },
+                        };
+                    }));
+            }, []);
     }
-    node.name = ts.createIdentifier(name);
-    return node;
-}
-
-export function resolveFromTopLevelSchema(name, input: IResponsesSchema, isLocal = false) {
-    const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
-    node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
-    node.name = ts.createIdentifier(name);
-    switch (input.type) {
-        case "string": {
-            node.type = ts.createTypeReferenceNode("string", undefined);
-            return node;
-        }
-        case "integer":
-        case "number": {
-            node.type = ts.createTypeReferenceNode("number", undefined);
-            return node;
-        }
-        case "boolean": {
-            node.type = ts.createTypeReferenceNode("boolean", undefined);
-            return node;
-        }
-        case "array": {
-            const items = (input as any).items;
-            if (items.$ref) {
-                const arrayRef = items.$ref;
-                const refName = interfaceNameFromRef(arrayRef);
-                const arrayType = ts.createTypeReferenceNode(refName, undefined);
-                if (!isLocal) {
-                    const leftName = ts.createIdentifier("Definitions");
-                    arrayType.typeName = ts.createQualifiedName(leftName, refName);
-                }
-                node.type = ts.createArrayTypeNode(arrayType);
-            }
-            return node;
-        }
+    function dashToStartCase(input) {
+        return input.split("-").map((x) => upper(x)).join("");
     }
-}
 
-export function getParamsFromObject(schemas: ISchemaObject[], isLocal = false) {
-    return schemas.reduce((acc, schema) => {
-        const {required, properties, type} = schema;
-        const members = Object.keys((properties || {})).map((propertyName: string) => {
-            const current: IDefinitionsItemProperties = properties[propertyName];
-            return resolveItem(propertyName, current, required, isLocal);
+    function upper(input) {
+        return input[0].toUpperCase() + input.slice(1);
+    }
+
+    function getPathMembers(items: PathParam[]) {
+        const members = items.map((item) => {
+            return resolveItem(item.name, item, [item.name]);
         });
-        return acc.concat(members);
-    }, []).filter(Boolean);
-}
-
-export function resolveItem(propertyName, current, required = [], isLocal = false) {
-    if ((current as any).$ref) {
-        const value = current.$ref;
-        const refItem = namedProp(propertyName, required.indexOf(propertyName) === -1);
-        const refName = interfaceNameFromRef(value);
-        return getDefinitionReference(refItem, propertyName, refName, isLocal);
+        const inter = createInterface("PathParams", members);
+        return inter;
     }
-    const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
-    if (current.type) {
-        switch (current.type) {
-            case "string": {
-                item.type = ts.createNode(ts.SyntaxKind.StringKeyword);
-                return item;
+
+    function getResponseUnion(responses) {
+        const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
+        node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
+        node.name = ts.createIdentifier("Response");
+        node.type = ts.createUnionOrIntersectionTypeNode(
+            ts.SyntaxKind.UnionType,
+            responses.map((resp) => ts.createTypeReferenceNode(resp.name.escapedText, undefined)),
+        );
+        return node;
+    }
+
+    function getResponses(responses: { [K in ResponseCode ]: IResponsesItem}) {
+        return Object.keys(responses).map((code) => {
+            const current = responses[code];
+            const schema: IDefinitionsItemProperties = current.schema;
+            const typeName = Number.isNaN(Number(code))
+                ? `Response${upper(code)}`
+                : `Response${code}`;
+            if (schema["$ref"]) {
+                const dashRefName = interfaceNameFromRef(schema["$ref"]);
+                const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
+                node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
+                return getDefinitionReference(node, typeName, dashRefName);
+            } else {
+                return resolveFromTopLevelSchema(typeName, schema, false);
             }
-            case "number":
-            case "integer": {
-                item.type = ts.createNode(ts.SyntaxKind.NumberKeyword);
-                return item;
+        }).filter(Boolean);
+    }
+
+    function getDefinitionReference(node, name, refName, isLocal = false) {
+        const leftName = ts.createIdentifier(options.defName);
+        node.type = ts.createTypeReferenceNode(refName, undefined);
+        if (!isLocal) {
+            node.type.typeName = ts.createQualifiedName(leftName, refName);
+        }
+        node.name = ts.createIdentifier(name);
+        return node;
+    }
+
+    function resolveFromTopLevelSchema(name, input: IResponsesSchema, isLocal = false) {
+        const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
+        node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
+        node.name = ts.createIdentifier(name);
+        switch (input.type) {
+            case "string": {
+                node.type = ts.createTypeReferenceNode("string", undefined);
+                return node;
+            }
+            case "integer":
+            case "number": {
+                node.type = ts.createTypeReferenceNode("number", undefined);
+                return node;
             }
             case "boolean": {
-                item.type = ts.createNode(ts.SyntaxKind.BooleanKeyword);
-                return item;
+                node.type = ts.createTypeReferenceNode("boolean", undefined);
+                return node;
             }
             case "array": {
-                if (current.items.$ref) {
-                    const arrayRef = current.items.$ref;
+                const items = (input as any).items;
+                if (items.$ref) {
+                    const arrayRef = items.$ref;
                     const refName = interfaceNameFromRef(arrayRef);
                     const arrayType = ts.createTypeReferenceNode(refName, undefined);
                     if (!isLocal) {
-                        const leftName = ts.createIdentifier("Definitions");
+                        const leftName = ts.createIdentifier(options.defName);
                         arrayType.typeName = ts.createQualifiedName(leftName, refName);
                     }
-                    item.type = ts.createArrayTypeNode(arrayType);
-                } else {
-                    const arrayType: any = getLiteralType(current.items.type);
-                    item.type = ts.createArrayTypeNode(arrayType);
+                    node.type = ts.createArrayTypeNode(arrayType);
                 }
-                return item;
+                return node;
             }
         }
     }
-}
 
-export function getLiteralType(type: TypeKey) {
-    switch (type) {
-        case "string": {
-            return ts.createNode(ts.SyntaxKind.StringKeyword);
-        }
-        case "boolean": {
-            return ts.createNode(ts.SyntaxKind.BooleanKeyword);
-        }
-        case "integer":
-        case "number": {
-            return ts.createNode(ts.SyntaxKind.NumberKeyword);
-        }
-    }
-}
-
-export function interfaceNameFromRef(ref: string): string {
-    const [refName] = ref.split("/").slice(-1);
-    return dashToStartCase(refName);
-}
-
-export function namedProp(name: string, optional = false) {
-
-    const prop: any = ts.createNode(ts.SyntaxKind.PropertySignature);
-    prop.name = ts.createIdentifier(name);
-
-    if (optional) {
-        prop.questionToken = ts.createNode(ts.SyntaxKind.QuestionToken);
+    function getParamsFromObject(schemas: ISchemaObject[], isLocal = false) {
+        return schemas.reduce((acc, schema) => {
+            const {required, properties, type} = schema;
+            const members = Object.keys((properties || {})).map((propertyName: string) => {
+                const current: IDefinitionsItemProperties = properties[propertyName];
+                return resolveItem(propertyName, current, required, isLocal);
+            });
+            return acc.concat(members);
+        }, []).filter(Boolean);
     }
 
-    return prop;
+    function resolveItem(propertyName, current, required = [], isLocal = false) {
+        if ((current as any).$ref) {
+            const value = current.$ref;
+            const refItem = namedProp(propertyName, required.indexOf(propertyName) === -1);
+            const refName = interfaceNameFromRef(value);
+            return getDefinitionReference(refItem, propertyName, refName, isLocal);
+        }
+        const item = namedProp(propertyName, required.indexOf(propertyName) === -1);
+        if (current.type) {
+            switch (current.type) {
+                case "string": {
+                    item.type = ts.createNode(ts.SyntaxKind.StringKeyword);
+                    return item;
+                }
+                case "number":
+                case "integer": {
+                    item.type = ts.createNode(ts.SyntaxKind.NumberKeyword);
+                    return item;
+                }
+                case "boolean": {
+                    item.type = ts.createNode(ts.SyntaxKind.BooleanKeyword);
+                    return item;
+                }
+                case "array": {
+                    if (current.items.$ref) {
+                        const arrayRef = current.items.$ref;
+                        const refName = interfaceNameFromRef(arrayRef);
+                        const arrayType = ts.createTypeReferenceNode(refName, undefined);
+                        if (!isLocal) {
+                            const leftName = ts.createIdentifier(options.defName);
+                            arrayType.typeName = ts.createQualifiedName(leftName, refName);
+                        }
+                        item.type = ts.createArrayTypeNode(arrayType);
+                    } else {
+                        const arrayType: any = getLiteralType(current.items.type);
+                        item.type = ts.createArrayTypeNode(arrayType);
+                    }
+                    return item;
+                }
+            }
+        }
+    }
+
+    function getLiteralType(type: TypeKey) {
+        switch (type) {
+            case "string": {
+                return ts.createNode(ts.SyntaxKind.StringKeyword);
+            }
+            case "boolean": {
+                return ts.createNode(ts.SyntaxKind.BooleanKeyword);
+            }
+            case "integer":
+            case "number": {
+                return ts.createNode(ts.SyntaxKind.NumberKeyword);
+            }
+        }
+    }
+
+    function interfaceNameFromRef(ref: string): string {
+        const [refName] = ref.split("/").slice(-1);
+        return dashToStartCase(refName);
+    }
+
+    function namedProp(name: string, optional = false) {
+
+        const prop: any = ts.createNode(ts.SyntaxKind.PropertySignature);
+        prop.name = ts.createIdentifier(name);
+
+        if (optional) {
+            prop.questionToken = ts.createNode(ts.SyntaxKind.QuestionToken);
+        }
+
+        return prop;
+    }
 }
 
 export interface SwaggerInput {
