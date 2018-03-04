@@ -18,7 +18,7 @@ describe("namespace generation", function() {
 
         assert.equal(modules.length, 1);
 
-        assert.equal(modules[0].displayName, 'AcmeManageBasketAddToBasketV1Put.ts');
+        assert.equal(modules[0].displayName, 'AcmeManageBasketAddToBasketV1AddProductPut.ts');
         assert.equal(modules[0].content, miniExpected);
 
         assert.equal(definitions[0].displayName, 'Definitions.ts');

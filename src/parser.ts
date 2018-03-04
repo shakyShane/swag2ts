@@ -63,7 +63,7 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
                     .keys(current)
                     .map((methodType: MethodKeys) => {
                         const item: MethodItem = current[methodType];
-                        const name = item.tags[0];
+                        const name = item.operationId;
                         const bodyItems = (item.parameters || [])
                             .map((x) => {
                                 if (x.in === "body") {
@@ -83,7 +83,7 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
 
                         return {
                             body: createInterface("Body", bodyMembers),
-                            displayName: upper(name) + upper(methodType),
+                            displayName: upper(name),
                             method: methodType,
                             pathParams: getPathMembers(pathItems),
                             responses: getResponses(item.responses),

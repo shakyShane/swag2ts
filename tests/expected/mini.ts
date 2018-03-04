@@ -1,4 +1,4 @@
-export namespace AcmeManageBasketAddToBasketV1Put {
+export namespace AcmeManageBasketAddToBasketV1AddProductPut {
     export const description = "";
     export const method = "PUT";
     export const operationId = "acmeManageBasketAddToBasketV1AddProductPut";
