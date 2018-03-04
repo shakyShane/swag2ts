@@ -45,10 +45,12 @@ swag2ts dir/myfile.json
 curl http://some.swagger.api/schema | swag2ts --stdin
 ```
 
-[x] - GET url params 
-[x] - simpler local refs in definitions
-[x] - array refs
-[x] - test + lint + build in npm test
-[x] - CLI stdin
-[x] - CLI files
-[ ] - support multiple file outputs
+## Todo 
+
+- [x] GET url params 
+- [x] simpler local refs in definitions
+- [x] array refs
+- [x] test + lint + build in npm test
+- [x] CLI stdin
+- [x] CLI files
+- [ ] support multiple file outputs
