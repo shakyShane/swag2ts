@@ -13,18 +13,20 @@ export function printNamespace(name: string, statements) {
     return printer.printNode(ts.EmitHint.Unspecified, ns, result);
 }
 
-export function printMany(items: Block[], imports?: ImportDeclaration) {
+export function printMany(items: Block[], imports: ImportDeclaration[] = [], after = []) {
     const result = ts.createSourceFile("module", "", ts.ScriptTarget.ES2016);
     const printer = ts.createPrinter({
         newLine: ts.NewLineKind.LineFeed,
     });
-    const modules = items.map(({displayName, statements}) => {
-        return createModule(displayName, statements);
-    });
+
+    const modules = items.reduce((acc, {displayName, statements}) => {
+        return acc.concat(statements);
+    }, []);
 
     const combinedItems = [
-        imports,
+        ...imports,
         ...modules,
+        ...after,
     ].filter(Boolean);
 
     (result as any).statements = combinedItems;

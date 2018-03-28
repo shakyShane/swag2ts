@@ -5,6 +5,9 @@ import {createConst, createInterface, createStatement, Options} from "./swagger"
 export interface Block {
     displayName: string;
     statements: Statement[];
+    variables: {[index: string]: string};
+    hasPathParams: boolean;
+    hasBody: boolean;
 }
 
 export interface ParseOutput {
@@ -32,7 +35,10 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
 
         return {
             displayName: item.displayName,
+            hasBody: body ? true : false,
+            hasPathParams: pathParms ? true : false,
             statements,
+            variables: item.variables,
         };
     });
 
@@ -49,7 +55,10 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
     return {
         definitions: [{
             displayName: options.defName,
+            hasBody: false,
+            hasPathParams: false,
             statements: definitions,
+            variables: {},
         }],
         modules,
     };

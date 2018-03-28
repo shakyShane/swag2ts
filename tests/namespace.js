@@ -2,14 +2,9 @@
 const {readFileSync} = require('fs');
 const assert = require('assert');
 const stub1 = require('../fixtures/mini');
-const {createDefs, createSplitDefs} = require('../');
+const {createSplitDefs} = require('../');
 
 describe("namespace generation", function() {
-    it('works as single file', function() {
-        const miniExpected = readFileSync('./tests/expected/mini.ts', 'utf8');
-        const actual = createDefs(stub1);
-        assert.equal(actual, miniExpected);
-    });
     it('works as multi-file', function() {
         const miniExpected = readFileSync('./tests/expected/mini-separate-defs.ts', 'utf8');
         const miniDefs = readFileSync('./tests/expected/Definitions.ts', 'utf8');

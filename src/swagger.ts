@@ -13,12 +13,15 @@ export interface Options {
     importPath?: string;
     defName?: string;
     outDir?: string;
+    imports?: ImportDeclaration[];
+    after?(item: any): any;
 }
 
 // defaults
 const defaults = {
     defName: "Definitions",
     importPath: "./Definitions",
+    imports: [],
     outDir: "swagger",
     outputType: OutputTypes.Single,
 };
@@ -56,7 +59,14 @@ export function createSplitDefs(json: SwaggerInput, options = {}): SplitDefsOutp
 
     const moduleFiles = modules.map((item) => {
         return {
-            content: printMany([item], createImport(merged)),
+            content: printMany(
+                [item],
+                [
+                    createNamespaceImport(merged),
+                    ...merged.imports,
+                ],
+                merged.after && merged.after(item),
+            ),
             displayName: `${item.displayName}.ts`,
             statements: item.statements,
         };
@@ -121,13 +131,25 @@ export function createModule(name: string, statements = []) {
         [ts.createToken(ts.SyntaxKind.ExportKeyword)],
         ts.createIdentifier(name),
         ts.createModuleBlock(statements),
-        ts.NodeFlags.Namespace,
     );
 }
 
-export function createImport(options: Options): ImportDeclaration {
+export function createNamespaceImport(options: Options): ImportDeclaration {
     const im = ts.createImportDeclaration(undefined, undefined, undefined);
-    const identifier = ts.createIdentifier(options.defName);
+    const clause = ts.createImportClause(
+        undefined,
+        ts.createNamespaceImport(ts.createIdentifier("Definitions")),
+    );
+
+    im.importClause = clause;
+    im.moduleSpecifier = ts.createLiteral(options.importPath);
+
+    return im;
+}
+
+export function createNamedImport(name: string, path: string): ImportDeclaration {
+    const im = ts.createImportDeclaration(undefined, undefined, undefined);
+    const identifier = ts.createIdentifier(name);
     const importSe = ts.createImportSpecifier(undefined, identifier);
     const namedId = ts.createNamedImports([importSe]);
 
@@ -135,7 +157,7 @@ export function createImport(options: Options): ImportDeclaration {
     clause.namedBindings = namedId;
 
     im.importClause = clause;
-    im.moduleSpecifier = ts.createLiteral(options.importPath);
+    im.moduleSpecifier = ts.createLiteral(path);
 
     return im;
 }
