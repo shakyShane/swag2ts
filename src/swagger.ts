@@ -68,6 +68,7 @@ export function createSplitDefs(json: SwaggerInput, options = {}): SplitDefsOutp
                 merged.after && merged.after(item),
             ),
             displayName: `${item.displayName}.ts`,
+            item,
             statements: item.statements,
         };
     });
@@ -76,6 +77,7 @@ export function createSplitDefs(json: SwaggerInput, options = {}): SplitDefsOutp
         return {
             content: printMany([item]),
             displayName: `${item.displayName}.ts`,
+            item,
             statements: item.statements,
         };
     });
