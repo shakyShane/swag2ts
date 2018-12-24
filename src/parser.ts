@@ -190,6 +190,25 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
                         arrayType.typeName = ts.createQualifiedName(leftName, refName);
                     }
                     node.type = ts.createArrayTypeNode(arrayType);
+                } else {
+                    switch (items.type) {
+                        case "string": {
+                            node.type = ts.createArrayTypeNode(
+                                ts.createKeywordTypeNode(
+                                    ts.SyntaxKind.StringKeyword,
+                                ),
+                            );
+                            break;
+                        }
+                        case "number": {
+                            node.type = ts.createArrayTypeNode(
+                                ts.createKeywordTypeNode(
+                                    ts.SyntaxKind.StringKeyword,
+                                ),
+                            );
+                            break;
+                        }
+                    }
                 }
                 return node;
             }
