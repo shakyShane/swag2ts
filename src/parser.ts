@@ -200,10 +200,19 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
                             );
                             break;
                         }
-                        case "number": {
+                        case "number":
+                        case "integer": {
                             node.type = ts.createArrayTypeNode(
                                 ts.createKeywordTypeNode(
-                                    ts.SyntaxKind.StringKeyword,
+                                    ts.SyntaxKind.NumberKeyword,
+                                ),
+                            );
+                            break;
+                        }
+                        case "boolean": {
+                            node.type = ts.createArrayTypeNode(
+                                ts.createKeywordTypeNode(
+                                    ts.SyntaxKind.BooleanKeyword,
                                 ),
                             );
                             break;

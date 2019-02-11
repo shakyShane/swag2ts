@@ -16,5 +16,8 @@ export interface Body {
     pets: string[];
     petsWithRef?: Definitions.AcmeCatalogProductPurchaseOptionInterface[];
 }
-export type Response = Response200;
+export type Response = Response200 | Response400 | Response401 | Response402;
 export type Response200 = string[];
+export type Response400 = boolean[];
+export type Response401 = number[];
+export type Response402 = number[];
