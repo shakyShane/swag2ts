@@ -90,6 +90,15 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
                             })
                             .filter(Boolean);
 
+                        if (!item.responses["200"]) {
+                            item.responses["200"] = {
+                                description: "400 error.",
+                                schema: {
+                                    type: "void",
+                                },
+                            };
+                        }
+
                         return {
                             body: createInterface("Body", bodyMembers),
                             displayName: upper(name),
@@ -166,6 +175,10 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
         node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
         node.name = ts.createIdentifier(name);
         switch (input.type) {
+            case "void": {
+                node.type = ts.createTypeReferenceNode("void", undefined);
+                return node;
+            }
             case "string": {
                 node.type = ts.createTypeReferenceNode("string", undefined);
                 return node;
@@ -357,7 +370,7 @@ export interface IProperties {
 }
 
 export type IResponsesSchema = {
-    $ref: string
+    $ref?: string
     type?: TypeKey,
 } | IDefinitionsItemProperties;
 
@@ -374,7 +387,7 @@ export interface DefinitionsItem {
     required?: string[];
 }
 
-export type TypeKey = "string" | "object" | "boolean" | "number" | "integer" | "array";
+export type TypeKey = "void" | "string" | "object" | "boolean" | "number" | "integer" | "array";
 
 export type IDefinitionsItemProperties = {
     type: "object";
