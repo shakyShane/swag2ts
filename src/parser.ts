@@ -209,8 +209,11 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
                         arrayType.typeName = ts.createQualifiedName(leftName, refName);
                     }
                     node.type = ts.createArrayTypeNode(arrayType);
-                    const nodeKeys = getRespKeysType(refName);
-                    return [node, nodeKeys];
+                    if (name === "Response200") {
+                        const nodeKeys = getRespKeysType(refName);
+                        return [node, nodeKeys];
+                    }
+                    return [node];
                 } else {
                     switch (items.type) {
                         case "string": {
