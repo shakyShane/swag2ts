@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 import {ImportDeclaration, Statement} from "typescript";
-import {parse, SwaggerInput} from "./parser";
+import {Block, parse, SwaggerInput} from "./parser";
 import {printMany, printNamespace} from "./printer";
 
 export enum OutputTypes {
@@ -45,6 +45,7 @@ export interface SplitDefsOutputItem {
     displayName: string;
     content: string;
     statements: Statement[];
+    item: Block;
 }
 
 export interface SplitDefsOutput {

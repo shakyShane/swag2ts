@@ -8,6 +8,7 @@ export interface Block {
     variables: {[index: string]: string};
     hasPathParams: boolean;
     hasBody: boolean;
+    hasRespKeys: boolean;
 }
 
 export interface ParseOutput {
@@ -37,6 +38,7 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
             displayName: item.displayName,
             hasBody: body ? true : false,
             hasPathParams: pathParms ? true : false,
+            hasRespKeys: item.hasRespKeys,
             statements,
             variables: item.variables,
         };
@@ -57,6 +59,7 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
             displayName: options.defName,
             hasBody: false,
             hasPathParams: false,
+            hasRespKeys: false,
             statements: definitions,
             variables: {},
         }],
@@ -99,12 +102,17 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
                             };
                         }
 
+                        const responses = getResponses(item.responses);
+
                         return {
                             body: createInterface("Body", bodyMembers),
                             displayName: upper(name),
+                            hasRespKeys: responses.some((x) => {
+                                return x.name.escapedText === "RespKeys";
+                            }),
                             method: methodType,
                             pathParams: getPathMembers(pathItems),
-                            responses: getResponses(item.responses),
+                            responses,
                             variables: {
                                 description: item.description,
                                 method: methodType.toUpperCase(),

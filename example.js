@@ -21,6 +21,8 @@ const defs = createSplitDefs(json);
 // console.log(json);
 // console.log(defs.modules.length);
 const paths = [];
-const output = defs.modules.map(x => x.content).join("\n\n");
+const output = defs.modules.forEach(x => {
+    console.log(x.item.hasRespKeys);
+})
 
-console.log(output);
+// console.log(output);
