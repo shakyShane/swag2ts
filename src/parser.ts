@@ -137,13 +137,15 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
         node.name = ts.createIdentifier("Response");
         node.type = ts.createUnionOrIntersectionTypeNode(
             ts.SyntaxKind.UnionType,
-            responses.map((resp) => ts.createTypeReferenceNode(resp.name.escapedText, undefined)),
+            responses
+                .filter((resp) => resp.name.escapedText !== "RespKeys")
+                .map((resp) => ts.createTypeReferenceNode(resp.name.escapedText, undefined)),
         );
         return node;
     }
 
     function getResponses(responses: { [K in ResponseCode ]: IResponsesItem}) {
-        return Object.keys(responses).map((code) => {
+        return Object.keys(responses).reduce((acc, code) => {
             const current = responses[code];
             const schema: IDefinitionsItemProperties = current.schema;
             const typeName = Number.isNaN(Number(code))
@@ -153,11 +155,15 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
                 const dashRefName = interfaceNameFromRef(schema["$ref"]);
                 const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
                 node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
-                return getDefinitionReference(node, typeName, dashRefName);
+                if (typeName === "Response200") {
+                    const nodeKeys = getRespKeysType(dashRefName);
+                    return acc.concat(getDefinitionReference(node, typeName, dashRefName), nodeKeys);
+                }
+                return acc.concat(getDefinitionReference(node, typeName, dashRefName));
             } else {
-                return resolveFromTopLevelSchema(typeName, schema, false);
+                return acc.concat(resolveFromTopLevelSchema(typeName, schema, false));
             }
-        }).filter(Boolean);
+        }, []).filter(Boolean);
     }
 
     function getDefinitionReference(node, name, refName, isLocal = false) {
@@ -177,20 +183,20 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
         switch (input.type) {
             case "void": {
                 node.type = ts.createTypeReferenceNode("void", undefined);
-                return node;
+                return [node];
             }
             case "string": {
                 node.type = ts.createTypeReferenceNode("string", undefined);
-                return node;
+                return [node];
             }
             case "integer":
             case "number": {
                 node.type = ts.createTypeReferenceNode("number", undefined);
-                return node;
+                return [node];
             }
             case "boolean": {
                 node.type = ts.createTypeReferenceNode("boolean", undefined);
-                return node;
+                return [node];
             }
             case "array": {
                 const items = (input as any).items;
@@ -203,6 +209,8 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
                         arrayType.typeName = ts.createQualifiedName(leftName, refName);
                     }
                     node.type = ts.createArrayTypeNode(arrayType);
+                    const nodeKeys = getRespKeysType(refName);
+                    return [node, nodeKeys];
                 } else {
                     switch (items.type) {
                         case "string": {
@@ -232,7 +240,7 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
                         }
                     }
                 }
-                return node;
+                return [node];
             }
         }
     }
@@ -321,6 +329,22 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
         }
 
         return prop;
+    }
+
+    function getRespKeysType(name: string) {
+        const node: any = ts.createNode(ts.SyntaxKind.TypeAliasDeclaration);
+        node.modifiers = [ts.createToken(ts.SyntaxKind.ExportKeyword)];
+        node.name = ts.createIdentifier("RespKeys");
+        const leftName = ts.createIdentifier(options.defName);
+        const refNode = ts.createTypeReferenceNode(name, undefined);
+        refNode.typeName = ts.createQualifiedName(leftName, name);
+
+        const tnode = ts.createArrayTypeNode(ts.createParenthesizedType(
+            ts.createTypeOperatorNode(refNode),
+        ));
+
+        node.type = tnode;
+        return node;
     }
 }
 
