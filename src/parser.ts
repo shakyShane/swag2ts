@@ -9,6 +9,7 @@ export interface Block {
     hasPathParams: boolean;
     hasBody: boolean;
     hasRespKeys: boolean;
+    hasArrayTypeRef: boolean;
 }
 
 export interface ParseOutput {
@@ -36,6 +37,7 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
 
         return {
             displayName: item.displayName,
+            hasArrayTypeRef: item.hasArrayTypeRef,
             hasBody: body ? true : false,
             hasPathParams: pathParms ? true : false,
             hasRespKeys: item.hasRespKeys,
@@ -57,6 +59,7 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
     return {
         definitions: [{
             displayName: options.defName,
+            hasArrayTypeRef: false,
             hasBody: false,
             hasPathParams: false,
             hasRespKeys: false,
@@ -107,6 +110,9 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
                         return {
                             body: createInterface("Body", bodyMembers),
                             displayName: upper(name),
+                            hasArrayTypeRef: responses.some((x) => {
+                                return x.hasArrayTypeRef;
+                            }),
                             hasRespKeys: responses.some((x) => {
                                 return x.name.escapedText === "RespKeys";
                             }),
@@ -218,6 +224,7 @@ export function parse(json: SwaggerInput, options: Options): ParseOutput {
                     }
                     node.type = ts.createArrayTypeNode(arrayType);
                     if (name === "Response200") {
+                        (node as any).hasArrayTypeRef = true;
                         const nodeKeys = getRespKeysType(refName);
                         return [node, nodeKeys];
                     }
