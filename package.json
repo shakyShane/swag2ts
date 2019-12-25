@@ -1,8 +1,9 @@
 {
   "name": "swag2ts",
-  "version": "2.4.3",
+  "version": "2.4.4",
   "description": "",
-  "main": "dist/swagger.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": "dist/bin.js",
   "scripts": {
     "lint": "tslint -c tslint.json 'src/**/*.ts' --fix --format stylish",

@@ -22,7 +22,7 @@ const defs = createSplitDefs(json);
 // console.log(defs.modules.length);
 const paths = [];
 const output = defs.modules.forEach(x => {
-    console.log(x.item.hasRespKeys);
+    // console.log(x.item.has);
 })
 
 // console.log(output);
