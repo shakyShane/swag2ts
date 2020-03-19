@@ -138,31 +138,17 @@ export function createModule(name: string, statements = []) {
 }
 
 export function createNamespaceImport(options: Options): ImportDeclaration {
-    const im = ts.createImportDeclaration(undefined, undefined, undefined);
-    const clause = ts.createImportClause(
+    const im = ts.createImportDeclaration(undefined, undefined, ts.createImportClause(
         undefined,
         ts.createNamespaceImport(ts.createIdentifier("Definitions")),
-    );
-
-    im.importClause = clause;
-    im.moduleSpecifier = ts.createLiteral(options.importPath);
-
+    ), ts.createLiteral(options.importPath));
     return im;
 }
 
 export function createNamedImport(name: string, path: string): ImportDeclaration {
-    const im = ts.createImportDeclaration(undefined, undefined, undefined);
     const identifier = ts.createIdentifier(name);
     const importSe = ts.createImportSpecifier(undefined, identifier);
-    const namedId = ts.createNamedImports([importSe]);
-
-    const clause = ts.createImportClause(undefined, undefined);
-    clause.namedBindings = namedId;
-
-    im.importClause = clause;
-    im.moduleSpecifier = ts.createLiteral(path);
-
-    return im;
+    return ts.createImportDeclaration(undefined, undefined, ts.createImportClause(undefined, ts.createNamedImports([importSe])), ts.createLiteral(path));
 }
 
 export {printNamespace, printMany, parse};
